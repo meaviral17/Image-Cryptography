@@ -1,3 +1,11 @@
+"""
+triple_chaos_demo.py
+
+Demonstrates triple-chaos encryption (Arnold -> Henon -> Logistic) 
+and saves all intermediate images and plots to an outputs/ folder.
+"""
+
+import os
 import numpy as np
 import cv2
 from PIL import Image
@@ -5,13 +13,20 @@ import matplotlib.pyplot as plt
 import random
 from math import log
 
-########################################################################
-# 1) UTILS: LOAD, SAVE, & DISPLAY
-########################################################################
+##############################################################################
+# 1) Create an outputs/ folder if it doesn't exist
+##############################################################################
+os.makedirs("outputs", exist_ok=True)
+
+##############################################################################
+# 2) IMAGE IO & PLOTTING UTILS
+##############################################################################
 
 def load_image(image_path, mode='color'):
     """
-    Loads an image from disk as a NumPy array (RGB or grayscale).
+    Loads an image from disk as a NumPy array.
+      - mode='color' => shape (H, W, 3)
+      - mode='gray'  => shape (H, W)
     """
     if mode == 'gray':
         pil_img = Image.open(image_path).convert('L')
@@ -22,32 +37,34 @@ def load_image(image_path, mode='color'):
 
 def save_image(img_array, out_path):
     """
-    Saves a NumPy array as a PNG image.
+    Saves a NumPy array to disk as a PNG.
     """
-    if len(img_array.shape) == 2:  # grayscale
-        out_img = Image.fromarray(img_array.astype('uint8'), mode='L')
+    if len(img_array.shape) == 2:
+        out_img = Image.fromarray(img_array.astype('uint8'), 'L')
     else:
-        out_img = Image.fromarray(img_array.astype('uint8'), mode='RGB')
+        out_img = Image.fromarray(img_array.astype('uint8'), 'RGB')
     out_img.save(out_path)
     print(f"Saved: {out_path}")
 
-def show_image(img_array, title="Image"):
+def show_and_save_image(img_array, title="Image", save_path=None):
     """
-    Displays an image array inline with matplotlib.
+    Displays the image using matplotlib and optionally saves to 'save_path'.
     """
     plt.figure(figsize=(5,5))
-    # If RGB, show directly; if grayscale, specify cmap='gray'
     if len(img_array.shape) == 2:
         plt.imshow(img_array, cmap='gray', vmin=0, vmax=255)
     else:
         plt.imshow(img_array)
     plt.title(title)
     plt.axis('off')
+    if save_path:
+        plt.savefig(save_path, bbox_inches='tight')
     plt.show()
+    plt.close()
 
-def compute_histogram(img_array, title="Histogram"):
+def show_and_save_histogram(img_array, title="Histogram", save_path=None):
     """
-    Plots a histogram of the given image array.
+    Plots and shows the histogram of an image, optionally saves to 'save_path'.
     """
     plt.figure()
     if len(img_array.shape) == 2:
@@ -62,11 +79,14 @@ def compute_histogram(img_array, title="Histogram"):
     plt.title(title)
     plt.xlabel("Pixel Value")
     plt.ylabel("Frequency")
+    if save_path:
+        plt.savefig(save_path, bbox_inches='tight')
     plt.show()
+    plt.close()
 
-def adjacent_pixel_correlation(img_array, sample_size=1024, title="Pixel Correlation"):
+def show_and_save_correlation(img_array, sample_size=1024, title="Correlation", save_path=None):
     """
-    Plots correlation between horizontally adjacent pixels.
+    Plots horizontally adjacent pixel correlation, optionally saves to file.
     """
     if len(img_array.shape) == 3:
         gray = cv2.cvtColor(img_array.astype('uint8'), cv2.COLOR_RGB2GRAY)
@@ -87,12 +107,15 @@ def adjacent_pixel_correlation(img_array, sample_size=1024, title="Pixel Correla
     plt.title(title)
     plt.xlabel("Pixel (r,c)")
     plt.ylabel("Pixel (r,c+1)")
+    if save_path:
+        plt.savefig(save_path, bbox_inches='tight')
     plt.show()
+    plt.close()
 
-########################################################################
-# 2) CHAOS MAP FUNCTIONS
-#    (A) Arnold’s Cat
-########################################################################
+##############################################################################
+# 3) CHAOS MAP FUNCTIONS
+#    A) Arnold's Cat
+##############################################################################
 
 def arnold_cat_transform(img):
     """
@@ -110,7 +133,7 @@ def arnold_cat_transform(img):
 
 def arnold_cat_encrypt(img_array, iterations):
     """
-    Applies the Arnold transform 'iterations' times.
+    Apply Arnold's Cat transform 'iterations' times.
     """
     h, w = img_array.shape[:2]
     if h != w:
@@ -122,7 +145,7 @@ def arnold_cat_encrypt(img_array, iterations):
 
 def arnold_cat_period(n):
     """
-    Estimate the period for an n x n image to return to original.
+    Estimate period for n x n image returning to original under Arnold's Cat.
     """
     if (n % 2 == 0) and 5**int(round(log(n/2,5))) == int(n/2):
         return 3*n
@@ -135,7 +158,7 @@ def arnold_cat_period(n):
 
 def arnold_cat_decrypt(img_array, iterations):
     """
-    Decrypt by continuing from 'iterations' up to period.
+    Decrypt by continuing from 'iterations' to full period.
     """
     n = img_array.shape[0]
     per = arnold_cat_period(n)
@@ -144,11 +167,14 @@ def arnold_cat_decrypt(img_array, iterations):
         result = arnold_cat_transform(result)
     return result
 
-########################################################################
-#    (B) Henon Map (XOR-based)
-########################################################################
+##############################################################################
+#    B) Henon Map (XOR-based)
+##############################################################################
 
 def bits_to_bytes(bits):
+    """
+    Convert a list of bits (0/1) into a list of bytes [0..255].
+    """
     assert len(bits) % 8 == 0
     out = []
     for i in range(0, len(bits), 8):
@@ -159,6 +185,9 @@ def bits_to_bytes(bits):
     return out
 
 def henon_map_sequence(num_bits, x0=0.1, y0=0.1, a=1.4, b=0.3):
+    """
+    Generate 'num_bits' bits from Henon map.
+    """
     x = x0
     y = y0
     bits = []
@@ -171,7 +200,7 @@ def henon_map_sequence(num_bits, x0=0.1, y0=0.1, a=1.4, b=0.3):
 
 def henon_encrypt(img_array, x0=0.1, y0=0.1):
     """
-    XOR each pixel with a byte from Henon-based stream.
+    XOR each pixel with Henon-based pseudorandom bytes.
     """
     shape = img_array.shape
     if len(shape) == 2:
@@ -190,30 +219,33 @@ def henon_encrypt(img_array, x0=0.1, y0=0.1):
     encrypted = np.zeros_like(img_array)
     idx = 0
     for r in range(h):
-        for c_ in range(w):
+        for cc in range(w):
             if c == 1:
-                px = img_array[r, c_]
-                encrypted[r, c_] = px ^ henon_stream[idx]
+                px = img_array[r, cc]
+                encrypted[r, cc] = px ^ henon_stream[idx]
                 idx += 1
             else:
-                px_r, px_g, px_b = img_array[r, c_]
-                encrypted[r, c_, 0] = px_r ^ henon_stream[idx]
-                encrypted[r, c_, 1] = px_g ^ henon_stream[idx+1]
-                encrypted[r, c_, 2] = px_b ^ henon_stream[idx+2]
+                px_r, px_g, px_b = img_array[r, cc]
+                encrypted[r, cc, 0] = px_r ^ henon_stream[idx]
+                encrypted[r, cc, 1] = px_g ^ henon_stream[idx+1]
+                encrypted[r, cc, 2] = px_b ^ henon_stream[idx+2]
                 idx += 3
     return encrypted
 
 def henon_decrypt(img_array, x0=0.1, y0=0.1):
     """
-    Same function (XOR-based).
+    Same as henon_encrypt (XOR-based).
     """
     return henon_encrypt(img_array, x0, y0)
 
-########################################################################
-#    (C) Logistic Map (XOR-based)
-########################################################################
+##############################################################################
+#    C) Logistic Map (XOR-based)
+##############################################################################
 
 def logistic_map_sequence(num_values, r=3.99, seed=0.12345):
+    """
+    Generate 'num_values' bytes from logistic map x_{n+1} = r*x_n*(1 - x_n).
+    """
     x = seed
     out_bytes = []
     for _ in range(num_values):
@@ -223,7 +255,7 @@ def logistic_map_sequence(num_values, r=3.99, seed=0.12345):
 
 def logistic_encrypt(img_array, r=3.99, seed=0.12345):
     """
-    XOR each pixel with logistic-based stream.
+    XOR each pixel with logistic-based pseudorandom bytes.
     """
     shape = img_array.shape
     if len(shape) == 2:
@@ -258,9 +290,9 @@ def logistic_decrypt(img_array, r=3.99, seed=0.12345):
     """
     return logistic_encrypt(img_array, r, seed)
 
-########################################################################
-# 3) TRIPLE-CHAOS ENCRYPT / DECRYPT (like Triple-DES)
-########################################################################
+##############################################################################
+# 4) TRIPLE-CHAOS (Arnold -> Henon -> Logistic)
+##############################################################################
 
 def triple_chaos_encrypt(
     img_array,
@@ -268,18 +300,15 @@ def triple_chaos_encrypt(
     henon_key=(0.1,0.1),
     logistic_key=(3.99, 0.12345)
 ):
-    """
-    1) Arnold's Cat -> 2) Henon -> 3) Logistic
-    """
-    # Arnold
-    step_arnold = arnold_cat_encrypt(img_array, arnold_key)
-    # Henon
+    # 1) Arnold
+    step1 = arnold_cat_encrypt(img_array, arnold_key)
+    # 2) Henon
     x0, y0 = henon_key
-    step_henon = henon_encrypt(step_arnold, x0, y0)
-    # Logistic
+    step2 = henon_encrypt(step1, x0, y0)
+    # 3) Logistic
     r, seed = logistic_key
-    step_logistic = logistic_encrypt(step_henon, r, seed)
-    return step_logistic
+    step3 = logistic_encrypt(step2, r, seed)
+    return step3
 
 def triple_chaos_decrypt(
     cipher_array,
@@ -287,85 +316,88 @@ def triple_chaos_decrypt(
     henon_key=(0.1,0.1),
     logistic_key=(3.99, 0.12345)
 ):
-    """
-    Reverse in opposite order: Logistic -> Henon -> Arnold
-    """
-    # Undo Logistic
+    # Reverse order: logistic -> henon -> arnold
     r, seed = logistic_key
-    step_logistic = logistic_decrypt(cipher_array, r, seed)
-    # Undo Henon
-    x0, y0 = henon_key
-    step_henon = henon_decrypt(step_logistic, x0, y0)
-    # Undo Arnold
-    step_arnold = arnold_cat_decrypt(step_henon, arnold_key)
-    return step_arnold
+    step1 = logistic_decrypt(cipher_array, r, seed)
 
-########################################################################
-# 4) DEMO SCRIPT: APPLY & DISPLAY AT EACH STAGE
-########################################################################
+    x0, y0 = henon_key
+    step2 = henon_decrypt(step1, x0, y0)
+
+    step3 = arnold_cat_decrypt(step2, arnold_key)
+    return step3
+
+##############################################################################
+# 5) DEMO FUNCTION: SHOW & SAVE AT EACH STAGE
+##############################################################################
 
 def run_demo():
-    INPUT_IMAGE = "input.png"  # <--- Change to your actual image (square!)
-    # Load your original image
-    original = load_image(INPUT_IMAGE, mode='color')
+    input_image = "input.png"  # change if needed
+    print("Loading:", input_image)
+    original = load_image(input_image, mode='color')
     h, w = original.shape[:2]
-    print(f"Loaded image '{INPUT_IMAGE}' with shape: {original.shape}")
+    print(f"Image shape: {original.shape}")
     if h != w:
-        print("WARNING: This is not a square image. Arnold's Cat won't work properly!")
-        # Alternatively, you can remove the Arnold step or pad the image.
+        print("WARNING: Image is not square! Arnold's Cat requires square images.")
 
-    # Show original
-    show_image(original, title="(1) Original Image")
-    compute_histogram(original, title="(1) Original Histogram")
-    adjacent_pixel_correlation(original, title="(1) Original Correlation")
+    # Show & Save Original
+    show_and_save_image(
+        original,
+        title="(1) Original Image",
+        save_path="outputs/1_original.png"
+    )
+    show_and_save_histogram(original, title="(1) Original Histogram", save_path="outputs/1_original_hist.png")
+    show_and_save_correlation(original, title="(1) Original Correlation", save_path="outputs/1_original_corr.png")
 
     #################################################
-    # ENCRYPTION
+    # Stage A: Arnold's Cat
     #################################################
-    # A) Arnold
-    arnold_key = 5  # or any integer
+    arnold_key = 5
     step_arnold = arnold_cat_encrypt(original, arnold_key)
-    show_image(step_arnold, title="(2) After Arnold's Cat")
-    compute_histogram(step_arnold, "(2) Arnold's Cat Histogram")
-    adjacent_pixel_correlation(step_arnold, title="(2) Arnold's Cat Correlation")
+    show_and_save_image(step_arnold, "(2) After Arnold's Cat", "outputs/2_arnold.png")
+    show_and_save_histogram(step_arnold, "(2) Arnold Histogram", "outputs/2_arnold_hist.png")
+    show_and_save_correlation(step_arnold, title="(2) Arnold Correlation", save_path="outputs/2_arnold_corr.png")
 
-    # B) Henon
-    henon_key = (0.1, 0.2)  # x0=0.1, y0=0.2
+    #################################################
+    # Stage B: Henon
+    #################################################
+    henon_key = (0.1, 0.2)
     step_henon = henon_encrypt(step_arnold, henon_key[0], henon_key[1])
-    show_image(step_henon, title="(3) After Henon Encryption")
-    compute_histogram(step_henon, "(3) Henon Histogram")
-    adjacent_pixel_correlation(step_henon, title="(3) Henon Correlation")
+    show_and_save_image(step_henon, "(3) After Henon", "outputs/3_henon.png")
+    show_and_save_histogram(step_henon, "(3) Henon Histogram", "outputs/3_henon_hist.png")
+    show_and_save_correlation(step_henon, title="(3) Henon Correlation", save_path="outputs/3_henon_corr.png")
 
-    # C) Logistic
-    logistic_key = (3.99, 0.11111)  # r=3.99, seed=0.11111
+    #################################################
+    # Stage C: Logistic
+    #################################################
+    logistic_key = (3.99, 0.11111)
     final_cipher = logistic_encrypt(step_henon, logistic_key[0], logistic_key[1])
-    show_image(final_cipher, title="(4) Final Cipher (Logistic)")
-    compute_histogram(final_cipher, "(4) Final Cipher Histogram")
-    adjacent_pixel_correlation(final_cipher, title="(4) Final Cipher Correlation")
+    show_and_save_image(final_cipher, "(4) Final Cipher (Logistic)", "outputs/4_final_cipher.png")
+    show_and_save_histogram(final_cipher, "(4) Cipher Histogram", "outputs/4_final_cipher_hist.png")
+    show_and_save_correlation(final_cipher, title="(4) Cipher Correlation", save_path="outputs/4_final_cipher_corr.png")
 
     # Save final cipher
-    save_image(final_cipher, "input_TripleChaosEnc.png")
+    save_image(final_cipher, "outputs/final_cipher.png")
 
     #################################################
-    # DECRYPTION (Reverse the steps)
+    # DECRYPTION (Reverse Steps)
     #################################################
-    # A) Undo Logistic
+    # Step 1: Undo Logistic
     dec_log = logistic_decrypt(final_cipher, logistic_key[0], logistic_key[1])
-    show_image(dec_log, title="(5) Decrypt Step 1: Undo Logistic")
+    show_and_save_image(dec_log, "(5) Decrypt Step 1 (Undo Logistic)", "outputs/5_undo_logistic.png")
 
-    # B) Undo Henon
+    # Step 2: Undo Henon
     dec_henon = henon_decrypt(dec_log, henon_key[0], henon_key[1])
-    show_image(dec_henon, title="(6) Decrypt Step 2: Undo Henon")
+    show_and_save_image(dec_henon, "(6) Decrypt Step 2 (Undo Henon)", "outputs/6_undo_henon.png")
 
-    # C) Undo Arnold
+    # Step 3: Undo Arnold
     dec_arnold = arnold_cat_decrypt(dec_henon, arnold_key)
-    show_image(dec_arnold, title="(7) Final Decrypted")
-    save_image(dec_arnold, "input_TripleChaosDec.png")
+    show_and_save_image(dec_arnold, "(7) Final Decrypted", "outputs/7_final_decrypted.png")
+    save_image(dec_arnold, "outputs/final_decrypted.png")
 
-    # Optional: Compare final decrypted to original
+    # Check MSE
     mse = np.mean((dec_arnold - original)**2)
     print(f"MSE between original and final decrypted = {mse:.6f}")
 
-# If running as a script, call run_demo():
+# If running as a script
 if __name__ == "__main__":
     run_demo()
