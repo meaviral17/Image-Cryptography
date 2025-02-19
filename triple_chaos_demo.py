@@ -12,6 +12,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import random
 from math import log
+from scipy.integrate import solve_ivp
 
 ##############################################################################
 # 1) Create an outputs/ folder if it doesn't exist
@@ -237,88 +238,65 @@ def henon_decrypt(img_array, x0=0.1, y0=0.1):
     Same as henon_encrypt (XOR-based).
     """
     return henon_encrypt(img_array, x0, y0)
-
+        
 ##############################################################################
-#    C) Logistic Map (XOR-based)
+# 3) Rössler Chaotic Map (Continuous-time System)
 ##############################################################################
 
-def logistic_map_sequence(num_values, r=3.99, seed=0.12345):
-    """
-    Generate 'num_values' bytes from logistic map x_{n+1} = r*x_n*(1 - x_n).
-    """
-    x = seed
-    out_bytes = []
-    for _ in range(num_values):
-        x = r*x*(1 - x)
-        out_bytes.append(int((x*1e6) % 256))
-    return out_bytes
+def rossler_system(t, state, a=0.2, b=0.2, c=5.7):
+    x, y, z = state
+    dx = -y - z
+    dy = x + a * y
+    dz = b + z * (x - c)
+    return [dx, dy, dz]
 
-def logistic_encrypt(img_array, r=3.99, seed=0.12345):
-    """
-    XOR each pixel with logistic-based pseudorandom bytes.
-    """
+def generate_rossler_sequence(length, x0=0.1, y0=0.1, z0=0.1, a=0.2, b=0.2, c=5.7):
+    t_span = [0, length * 0.1]  # Time interval
+    t_eval = np.linspace(t_span[0], t_span[1], length)  # Sample points
+    sol = solve_ivp(rossler_system, t_span, [x0, y0, z0], args=(a, b, c), t_eval=t_eval)
+    seq = np.abs(sol.y[0] * 1e6) % 256  # Scale values to byte range
+    return seq.astype(np.uint8)
+
+def rossler_encrypt(img_array, x0=0.1, y0=0.1, z0=0.1):
     shape = img_array.shape
-    if len(shape) == 2:
-        h, w = shape
-        c = 1
-    else:
-        h, w, c = shape
+    h, w, c = shape if len(shape) == 3 else (*shape, 1)
+    total_pixels = h * w * c
+    chaos_stream = generate_rossler_sequence(total_pixels, x0, y0, z0)
+    encrypted = img_array.flatten() ^ chaos_stream
+    return encrypted.reshape(shape)
 
-    total_pixels = h*w
-    needed_bytes = total_pixels*c
-    chaos_stream = logistic_map_sequence(needed_bytes, r, seed)
-
-    encrypted = np.zeros_like(img_array)
-    idx = 0
-    for row in range(h):
-        for col in range(w):
-            if c == 1:
-                px = img_array[row, col]
-                encrypted[row, col] = px ^ chaos_stream[idx]
-                idx += 1
-            else:
-                px_r, px_g, px_b = img_array[row, col]
-                encrypted[row, col, 0] = px_r ^ chaos_stream[idx]
-                encrypted[row, col, 1] = px_g ^ chaos_stream[idx+1]
-                encrypted[row, col, 2] = px_b ^ chaos_stream[idx+2]
-                idx += 3
-    return encrypted
-
-def logistic_decrypt(img_array, r=3.99, seed=0.12345):
-    """
-    XOR-based => same function.
-    """
-    return logistic_encrypt(img_array, r, seed)
+def rossler_decrypt(img_array, x0=0.1, y0=0.1, z0=0.1):
+    return rossler_encrypt(img_array, x0, y0, z0)  # XOR-based is reversible
 
 ##############################################################################
-# 4) TRIPLE-CHAOS (Arnold -> Henon -> Logistic)
+# 4) TRIPLE-CHAOS (Arnold -> Henon -> Rossler)
 ##############################################################################
 
 def triple_chaos_encrypt(
     img_array,
     arnold_key=10,
     henon_key=(0.1,0.1),
-    logistic_key=(3.99, 0.12345)
+    rossler_key=(0.1, 0.1, 0.1)
 ):
     # 1) Arnold
     step1 = arnold_cat_encrypt(img_array, arnold_key)
     # 2) Henon
     x0, y0 = henon_key
     step2 = henon_encrypt(step1, x0, y0)
-    # 3) Logistic
-    r, seed = logistic_key
-    step3 = logistic_encrypt(step2, r, seed)
+    # 3) Rossler
+    x0, y0, z0 = rossler_key
+    step3 = rossler_encrypt(step2, x0, y0, z0)
     return step3
 
 def triple_chaos_decrypt(
     cipher_array,
     arnold_key=10,
     henon_key=(0.1,0.1),
-    logistic_key=(3.99, 0.12345)
+    rossler_key=(0.1, 0.1, 0.1)
 ):
-    # Reverse order: logistic -> henon -> arnold
-    r, seed = logistic_key
-    step1 = logistic_decrypt(cipher_array, r, seed)
+    # Reverse order: rossler -> henon -> arnold
+    x0, y0, z0 = rossler_key
+    step1 = rossler_decrypt(cipher_array, x0, y0, z0)
 
     x0, y0 = henon_key
     step2 = henon_decrypt(step1, x0, y0)
@@ -361,17 +339,19 @@ def run_demo():
     # Stage B: Henon
     #################################################
     henon_key = (0.1, 0.2)
-    step_henon = henon_encrypt(step_arnold, henon_key[0], henon_key[1])
+    x0, y0 = henon_key
+    step_henon = henon_encrypt(step_arnold, x0, y0)
     show_and_save_image(step_henon, "(3) After Henon", "outputs/3_henon.png")
     show_and_save_histogram(step_henon, "(3) Henon Histogram", "outputs/3_henon_hist.png")
     show_and_save_correlation(step_henon, title="(3) Henon Correlation", save_path="outputs/3_henon_corr.png")
 
     #################################################
-    # Stage C: Logistic
+    # Stage C: Rossler
     #################################################
-    logistic_key = (3.99, 0.11111)
-    final_cipher = logistic_encrypt(step_henon, logistic_key[0], logistic_key[1])
-    show_and_save_image(final_cipher, "(4) Final Cipher (Logistic)", "outputs/4_final_cipher.png")
+    rossler_key = (0.3, 0.2, 0.1)
+    x0, y0, z0 = rossler_key
+    final_cipher = rossler_encrypt(step_henon, x0, y0, z0)
+    show_and_save_image(final_cipher, "(4) Final Cipher (Rossler)", "outputs/4_final_cipher.png")
     show_and_save_histogram(final_cipher, "(4) Cipher Histogram", "outputs/4_final_cipher_hist.png")
     show_and_save_correlation(final_cipher, title="(4) Cipher Correlation", save_path="outputs/4_final_cipher_corr.png")
 
@@ -381,9 +361,9 @@ def run_demo():
     #################################################
     # DECRYPTION (Reverse Steps)
     #################################################
-    # Step 1: Undo Logistic
-    dec_log = logistic_decrypt(final_cipher, logistic_key[0], logistic_key[1])
-    show_and_save_image(dec_log, "(5) Decrypt Step 1 (Undo Logistic)", "outputs/5_undo_logistic.png")
+    # Step 1: Undo Rossler
+    dec_log = rossler_decrypt(final_cipher, rossler_key[0], rossler_key[1])
+    show_and_save_image(dec_log, "(5) Decrypt Step 1 (Undo Rossler)", "outputs/5_undo_rossler.png")
 
     # Step 2: Undo Henon
     dec_henon = henon_decrypt(dec_log, henon_key[0], henon_key[1])
