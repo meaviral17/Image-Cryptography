@@ -250,7 +250,7 @@ def rossler_system(t, state, a=0.2, b=0.2, c=5.7):
     dz = b + z * (x - c)
     return [dx, dy, dz]
 
-def generate_rossler_sequence(length, x0=0.1, y0=0.1, z0=0.1, a=0.2, b=0.2, c=5.7):
+def generate_rossler_sequence(length, x0=0.1, y0=0.1, z0=0.1, a=0.432, b=2, c=4):
     t_span = [0, length * 0.1]  # Time interval
     t_eval = np.linspace(t_span[0], t_span[1], length)  # Sample points
     sol = solve_ivp(rossler_system, t_span, [x0, y0, z0], args=(a, b, c), t_eval=t_eval)
@@ -338,9 +338,8 @@ def run_demo():
     #################################################
     # Stage B: Henon
     #################################################
-    henon_key = (0.1, 0.2)
-    x0, y0 = henon_key
-    step_henon = henon_encrypt(step_arnold, x0, y0)
+    henon_key = (0.1, 0.25)
+    step_henon = henon_encrypt(step_arnold, henon_key[0], henon_key[1])
     show_and_save_image(step_henon, "(3) After Henon", "outputs/3_henon.png")
     show_and_save_histogram(step_henon, "(3) Henon Histogram", "outputs/3_henon_hist.png")
     show_and_save_correlation(step_henon, title="(3) Henon Correlation", save_path="outputs/3_henon_corr.png")
@@ -348,9 +347,8 @@ def run_demo():
     #################################################
     # Stage C: Rossler
     #################################################
-    rossler_key = (0.3, 0.2, 0.1)
-    x0, y0, z0 = rossler_key
-    final_cipher = rossler_encrypt(step_henon, x0, y0, z0)
+    rossler_key = (0.582, 0.628, 0.9389)
+    final_cipher = rossler_encrypt(step_henon, rossler_key[0], rossler_key[1], rossler_key[2])
     show_and_save_image(final_cipher, "(4) Final Cipher (Rossler)", "outputs/4_final_cipher.png")
     show_and_save_histogram(final_cipher, "(4) Cipher Histogram", "outputs/4_final_cipher_hist.png")
     show_and_save_correlation(final_cipher, title="(4) Cipher Correlation", save_path="outputs/4_final_cipher_corr.png")
@@ -362,7 +360,7 @@ def run_demo():
     # DECRYPTION (Reverse Steps)
     #################################################
     # Step 1: Undo Rossler
-    dec_log = rossler_decrypt(final_cipher, rossler_key[0], rossler_key[1])
+    dec_log = rossler_decrypt(final_cipher, rossler_key[0], rossler_key[1], rossler_key[2])
     show_and_save_image(dec_log, "(5) Decrypt Step 1 (Undo Rossler)", "outputs/5_undo_rossler.png")
 
     # Step 2: Undo Henon
