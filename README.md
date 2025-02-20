@@ -39,16 +39,16 @@ def henon_encrypt(image, a=1.4, b=0.3):
 
 Flowchart of Project:
 
-!(https://github.com/meaviral17/Image-Cryptography/blob/main/Pipeline.png?raw=true)
+![image alt](https://github.com/meaviral17/Image-Cryptography/blob/main/Pipeline.png?raw=true)
 
 Input Image:
 
-!(https://github.com/meaviral17/Image-Cryptography/blob/main/input.png?raw=true)
+![image alt](https://github.com/meaviral17/Image-Cryptography/blob/main/input.png?raw=true)
 
 Encoded Image:
 
-!(https://github.com/meaviral17/Image-Cryptography/blob/main/input_TripleChaosEnc.png?raw=true)
+![image alt](https://github.com/meaviral17/Image-Cryptography/blob/main/input_TripleChaosEnc.png?raw=true)
 
 Decoded Image:
 
-!(https://github.com/meaviral17/Image-Cryptography/blob/main/input_TripleChaosDec.png?raw=true)
+![image alt](https://github.com/meaviral17/Image-Cryptography/blob/main/input_TripleChaosDec.png?raw=true)
