@@ -33,7 +33,6 @@ def henon_encrypt(image, a=1.4, b=0.3):
 ```
 
 
-## Installation
 
 ## Images and Workflow
 
@@ -52,3 +51,30 @@ Encoded Image:
 Decoded Image:
 
 ![image alt](https://github.com/meaviral17/Image-Cryptography/blob/main/input_TripleChaosDec.png?raw=true)
+
+
+## Installation
+
+### Step 1: Clone the Repository  
+To begin, clone the project repository from GitHub using the following command:  
+```sh
+git clone https://github.com/meaviral17/Intel-Summer-Intern-2024.git
+```
+### Step 2: Navigate to the Project Directory
+Once the repository is cloned, move into the project folder using:
+```sh
+cd IMAGE_CRYPTOGRAPHY
+```
+### Step 3: Install Dependencies
+To ensure all required dependencies are installed, run the appropriate command based on your environment:
+For Python-based installations:
+```sh
+pip install -r requirements.txt
+```
+
+### Step 4: Run the Application
+Once all dependencies are installed, execute the application with:
+
+```sh
+python triple_chaos_demo.ipynb
+```
