@@ -16,23 +16,6 @@ In the digital era, ensuring image security is a top priority. Traditional encry
 
 * Scalability and Adaptability: Suitable for various types of digital image encryption, ensuring broad applicability in security-critical fields.
 
-## Henon Map Encryption Example
-
-```python
-def henon_encrypt(image, a=1.4, b=0.3):
-    height, width = image.shape
-    x, y = 0.1, 0.1  # Initial conditions
-
-    for i in range(height):
-        for j in range(width):
-            x_new = 1 - a * x**2 + y
-            y_new = b * x
-            x, y = x_new, y_new
-            image[i, j] = (image[i, j] + int(255 * x)) % 256
-    return image
-```
-
-
 
 ## Images and Workflow
 
