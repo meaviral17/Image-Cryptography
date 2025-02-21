@@ -2,13 +2,13 @@
 
 ## Introduction
 
-In the digital era, ensuring image security is a top priority. Traditional encryption methods like AES and RSA struggle with large image data, leading to inefficiencies in processing time and security. SecureVision presents an innovative approach using chaos-based encryption, leveraging chaotic system properties such as high sensitivity to initial conditions, ergodicity, and pseudo-random behavior. This project implements and compares chaos maps, including Arnold Cat Map, Henon Map, and Logistic Chaos Map, to deliver a high-security, computationally efficient image encryption system.
+In the digital era, ensuring image security is a top priority. Traditional encryption methods like AES and RSA struggle with large image data, leading to inefficiencies in processing time and security. SecureVision presents an innovative approach using chaos-based encryption, leveraging chaotic system properties such as high sensitivity to initial conditions, ergodicity, and pseudo-random behavior. This project implements and compares chaos maps, including Arnold Cat Map, Henon Map, and Rössler Map, to deliver a high-security, computationally efficient image encryption system.
 
 ## Features
 
 * Increased Security Complexity: The use of multiple chaos maps ensures a layered encryption approach that is more resilient to attacks than single-map encryption.
 
-* Optimized Computational Efficiency: By strategically applying Arnold Cat, Henon, and Logistic Maps, our approach minimizes redundant computations and enhances processing speed.
+* Optimized Computational Efficiency: By strategically applying Arnold Cat, Henon, and Rössler Maps, our approach minimizes redundant computations and enhances processing speed.
 
 * Hybrid Chaos-Based Encryption: Combines multiple chaotic maps into a unified framework to maximize encryption robustness.
 
