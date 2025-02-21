@@ -58,7 +58,7 @@ Decoded Image:
 ### Step 1: Clone the Repository  
 To begin, clone the project repository from GitHub using the following command:  
 ```sh
-git clone https://github.com/meaviral17/Intel-Summer-Intern-2024.git
+git clone https://github.com/meaviral17/Image-Cryptography.git
 ```
 ### Step 2: Navigate to the Project Directory
 Once the repository is cloned, move into the project folder using:
