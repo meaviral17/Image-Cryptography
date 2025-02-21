@@ -76,5 +76,5 @@ pip install -r requirements.txt
 Once all dependencies are installed, execute the application with:
 
 ```sh
-python triple_chaos_demo.ipynb
+python triple_chaos_demo.py
 ```
